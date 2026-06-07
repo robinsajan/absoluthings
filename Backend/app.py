@@ -71,6 +71,11 @@ def token_required(f):
 
 # --- API Routes ---
 
+@app.route("/")
+def health():
+    return "OK"
+
+
 @app.route('/api/products', methods=['GET'])
 def get_products():
     products = Product.query.all()

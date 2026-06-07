@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import resend
-from models import db, Product, WaitingList, CartItem, OTP, ProductImage, PastOrder
+from models import db, Product, WaitingList, CartItem, OTP, ProductImage, PastOrder, CustomRequest
 
 load_dotenv()
 
@@ -115,6 +115,38 @@ def join_waiting_list():
         'entry': new_entry.to_dict()
     }), 201
 
+@app.route('/api/custom-requests', methods=['POST'])
+def create_custom_request():
+    data = request.get_json() or {}
+    name = data.get('name', '').strip()
+    email = data.get('email', '').strip().lower()
+    material = data.get('material', '').strip()
+    quantity = data.get('quantity', 1)
+    file_link = data.get('file_link', '').strip()
+    description = data.get('description', '').strip()
+
+    if not name or not email or not validate_email(email):
+        return jsonify({'error': 'Name and a valid email are required'}), 400
+
+    new_req = CustomRequest(
+        name=name,
+        email=email,
+        material=material,
+        quantity=quantity,
+        file_link=file_link,
+        description=description
+    )
+    db.session.add(new_req)
+    db.session.commit()
+
+
+
+    return jsonify({
+        'message': 'Thank you! Your custom printing request has been received. Our team will contact you shortly.',
+        'request': new_req.to_dict()
+    }), 201
+
+
 @app.route('/api/auth/otp/request', methods=['POST'])
 def request_otp():
     data = request.get_json() or {}
@@ -142,8 +174,14 @@ def request_otp():
             resend.Emails.send({
                 "from": from_email,
                 "to": email,
-                "subject": f"Absoluthings Verification Code: {otp_code}",
-                "html": f"<p>Your verification code is: <strong>{otp_code}</strong>. It expires in 5 minutes.</p>"
+                "subject": "OTP absoluThings",
+                "html": (
+                    f"<p>Your verification code is:</p>"
+                    f"<h2 style='font-size: 24px; font-weight: bold; letter-spacing: 2px; margin: 16px 0;'>{otp_code}</h2>"
+                    f"<p>This code will expire in 5 minutes.</p>"
+                    f"<p>If you did not request this code, you can safely ignore this email.</p>"
+                    f"<p>Thank you,<br/>AbsolutThings</p>"
+                )
             })
             email_sent = True
     except Exception as e:

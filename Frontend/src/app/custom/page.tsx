@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+
 export default function CustomPage() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -9,7 +11,7 @@ export default function CustomPage() {
   const [quantity, setQuantity] = useState(1);
   const [fileLink, setFileLink] = useState("");
   const [description, setDescription] = useState("");
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
@@ -22,21 +24,36 @@ export default function CustomPage() {
     setErrorMessage("");
 
     try {
-      // In a real application, we might post to a Flask endpoint. Let's make it work or mock it gracefully,
-      // or check if there is an endpoint. Let's look at the Flask backend app.py if needed, but we can also just show
-      // a successful submission locally with a mailto fallback or clear success screen.
-      // Let's call the backend if there's an API, or handle it as a simulated success. Let's mock a 1-second delay.
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      
-      setSuccessMessage("Thank you! Your custom printing request has been received. Our team will contact you shortly.");
-      setName("");
-      setEmail("");
-      setMaterial("PLA");
-      setQuantity(1);
-      setFileLink("");
-      setDescription("");
+      const res = await fetch(`${API_BASE_URL}/api/custom-requests`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          material,
+          quantity,
+          file_link: fileLink,
+          description,
+        }),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        setSuccessMessage(data.message || "Thank you! Your custom printing request has been received. Our team will contact you shortly.");
+        setName("");
+        setEmail("");
+        setMaterial("PLA");
+        setQuantity(1);
+        setFileLink("");
+        setDescription("");
+      } else {
+        setErrorMessage(data.error || "Something went wrong. Please try again or email us directly at theabsoluthings@gmail.com");
+      }
     } catch (err) {
-      setErrorMessage("Something went wrong. Please try again or email us directly at create@absoluthings.com");
+      setErrorMessage("Something went wrong. Please try again or email us directly at theabsoluthings@gmail.com");
     } finally {
       setIsSubmitting(false);
     }
@@ -117,7 +134,7 @@ export default function CustomPage() {
 
           <div className="bg-white/40 backdrop-blur-sm border border-primary/5 rounded-sm p-6 md:p-10 shadow-sm">
             <p className="font-body text-[14px] text-on-surface-variant leading-relaxed mb-8 text-center max-w-lg mx-auto">
-              Have a specific 3D model, custom modification, or engineering draft you need printed with absolute precision? 
+              Have a specific 3D model, custom modification, or engineering draft you need printed with absolute precision?
               Fill out the details below, and we will get back to you with a quote.
             </p>
 
@@ -236,8 +253,8 @@ export default function CustomPage() {
           <div className="text-center mt-8">
             <p className="font-body text-[13px] text-on-surface-variant">
               Or email us directly at{" "}
-              <a href="mailto:create@absoluthings.com" className="text-primary underline hover:opacity-80 transition-opacity">
-                create@absoluthings.com
+              <a href="mailto:theabsoluthings@gmail.com" className="text-primary underline hover:opacity-80 transition-opacity">
+                theabsoluthings@gmail.com
               </a>
             </p>
           </div>

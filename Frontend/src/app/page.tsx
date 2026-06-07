@@ -301,11 +301,11 @@ export default function Home() {
       {/* Main Content */}
       <main className="flex-grow pt-20">
         {/* Hero Section */}
-        <section className="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-10 pb-8 md:pt-16 md:pb-12 flex flex-col items-center text-center">
+        <section className="w-full max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-4 pb-8 md:pt-6 md:pb-12 flex flex-col items-center text-center">
 
           {/* Hero Image — static if 1 product, crossfade carousel if many */}
           {products.length > 0 ? (
-            <div className="relative w-full max-w-3xl h-[260px] sm:h-[380px] md:h-[480px] overflow-hidden bg-surface-variant border border-primary/5 rounded-sm my-6 sm:my-8 shadow-sm">
+            <div className="relative w-full max-w-3xl h-[260px] sm:h-[380px] md:h-[480px] overflow-hidden bg-surface-variant border border-primary/5 rounded-sm mt-3 mb-6 sm:mt-4 sm:mb-8 shadow-sm">
               {products.length === 1 ? (
                 <>
                   <img
@@ -402,7 +402,15 @@ export default function Home() {
           {products.length === 0 ? (
             <p className="text-center font-body text-on-surface-variant italic">Loading products catalog...</p>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+            <div className={`grid grid-cols-1 ${
+              products.length === 1
+                ? "max-w-md mx-auto w-full"
+                : products.length === 2
+                ? "sm:grid-cols-2 max-w-2xl mx-auto w-full"
+                : products.length === 3
+                ? "sm:grid-cols-2 lg:grid-cols-3 max-w-5xl mx-auto w-full"
+                : "sm:grid-cols-2 lg:grid-cols-4"
+            } gap-8`}>
               {products.map((product) => (
                 <div
                   key={product.id}
@@ -425,11 +433,8 @@ export default function Home() {
                       <h3 className="font-display text-[18px] text-primary mb-1 uppercase tracking-wide hover:opacity-80 transition-opacity">
                         <a href={`/product/${product.id}`}>{product.name}</a>
                       </h3>
-                      <p className="font-label-caps text-[12px] text-primary mb-3">
+                      <p className="font-label-caps text-[12px] text-primary mb-4">
                         ₹{product.price}
-                      </p>
-                      <p className="font-body text-[13px] text-on-surface-variant leading-relaxed mb-6">
-                        {product.description}
                       </p>
                     </div>
 

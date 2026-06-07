@@ -113,3 +113,27 @@ class PastOrder(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'product': self.product.to_dict() if self.product else None
         }
+
+class CustomRequest(db.Model):
+    __tablename__ = 'custom_requests'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False)
+    material = db.Column(db.String(50), nullable=False)
+    quantity = db.Column(db.Integer, nullable=False, default=1)
+    file_link = db.Column(db.String(255))
+    description = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'email': self.email,
+            'material': self.material,
+            'quantity': self.quantity,
+            'file_link': self.file_link,
+            'description': self.description,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+

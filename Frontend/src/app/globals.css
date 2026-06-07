@@ -1,0 +1,65 @@
+@import "tailwindcss";
+
+@theme {
+  --color-on-surface: #1a1c1c;
+  --color-on-primary: #ffffff;
+  --color-surface-variant: #e2e2e2;
+  --color-surface: #f9f9f9;
+  --color-on-surface-variant: #4c4546;
+  --color-on-tertiary-container: #848484;
+  --color-primary: #000000;
+  --color-outline-variant: #cfc4c5;
+
+  --spacing-gutter: 24px;
+  --spacing-container-max: 960px;
+  --spacing-margin-desktop: 64px;
+  --spacing-margin-mobile: 24px;
+
+  --font-label-caps: var(--font-montserrat), sans-serif;
+  --font-body: var(--font-montserrat), sans-serif;
+  --font-display: var(--font-bodoni-moda), serif;
+
+  --font-size-label-caps: 11px;
+  --font-size-body: 15px;
+  --font-size-display-sm: 36px;
+  --font-size-display-md: 56px;
+  --font-size-display-lg: 72px;
+}
+
+body {
+  background-color: #f9f9f9;
+  color: #1a1c1c;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+@utility hairline {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #1a1c1c 20%, #1a1c1c 80%, transparent);
+  opacity: 0.15;
+}
+
+@utility hairline-solid {
+  height: 1px;
+  background-color: #1a1c1c;
+  opacity: 0.12;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@utility animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+@utility animate-slide-in {
+  animation: slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+

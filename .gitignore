@@ -1,0 +1,33 @@
+# Environment files
+.env
+Backend/.env
+.env.local
+Frontend/.env.local
+.env.*
+db_pwd.txt.txt
+Backend/db_pwd.txt.txt
+
+# Databases
+*.db
+Backend/absoluthings.db
+
+# JSON product lists (credentials/URLs)
+*.json
+!package.json
+!tsconfig.json
+
+# Python caches and virtual environments
+__pycache__/
+Backend/__pycache__/
+.venv/
+Backend/.venv/
+
+# Node/Frontend files
+node_modules/
+Frontend/node_modules/
+.next/
+Frontend/.next/
+
+
+/.agent
+/openspec

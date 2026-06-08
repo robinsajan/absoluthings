@@ -123,6 +123,16 @@ export default function ProductDetailPage({ params }: PageProps) {
   const [authError, setAuthError] = useState("");
   const [authMessage, setAuthMessage] = useState("");
 
+  // Toast notification
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const showToast = (msg: string) => {
+    setToastMessage(msg);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 5000);
+  };
+
   useEffect(() => {
     fetchProduct();
     fetchReviews();
@@ -202,6 +212,7 @@ export default function ProductDetailPage({ params }: PageProps) {
       const data = await res.json();
       if (res.ok) {
         setWaitlistMessage(data.message || "Successfully joined!");
+        showToast("You've been added to the waiting list! Our team will reach out to you shortly with confirmation.");
         setTimeout(() => setIsWaitlistOpen(false), 3000);
         if (token) fetchOrders(token);
       } else {
@@ -234,6 +245,7 @@ export default function ProductDetailPage({ params }: PageProps) {
       const data = await res.json();
       if (res.ok) {
         setOrderMessage(data.message || "Order placed!");
+        showToast("Your order has been placed! Our team will reach out to you shortly with confirmation.");
         setTimeout(() => setIsOrderOpen(false), 4000);
         if (token) fetchOrders(token);
       } else {
@@ -878,6 +890,112 @@ export default function ProductDetailPage({ params }: PageProps) {
           </a>
         </div>
       </footer>
+
+      {/* ── Toast Notification ── */}
+      <div
+        style={{
+          position: "fixed",
+          bottom: "2rem",
+          left: "50%",
+          transform: toastVisible ? "translateX(-50%) translateY(0)" : "translateX(-50%) translateY(120%)",
+          opacity: toastVisible ? 1 : 0,
+          transition: "transform 0.45s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease",
+          zIndex: 9999,
+          pointerEvents: toastVisible ? "auto" : "none",
+          maxWidth: "min(480px, calc(100vw - 2rem))",
+          width: "100%",
+        }}
+      >
+        <div style={{
+          display: "flex",
+          alignItems: "flex-start",
+          gap: "14px",
+          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
+          border: "1px solid rgba(255,255,255,0.12)",
+          borderRadius: "16px",
+          padding: "18px 20px",
+          boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)",
+          backdropFilter: "blur(20px)",
+        }}>
+          {/* Icon */}
+          <div style={{
+            flexShrink: 0,
+            width: "38px",
+            height: "38px",
+            borderRadius: "50%",
+            background: "linear-gradient(135deg, #4ade80, #22c55e)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "18px",
+            boxShadow: "0 4px 16px rgba(74,222,128,0.35)",
+          }}>
+            ✓
+          </div>
+          {/* Text */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <p style={{
+              margin: 0,
+              fontWeight: 600,
+              fontSize: "13px",
+              color: "#ffffff",
+              letterSpacing: "0.01em",
+              lineHeight: "1.4",
+            }}>
+              {toastMessage}
+            </p>
+            <p style={{
+              margin: "4px 0 0",
+              fontSize: "11px",
+              color: "rgba(255,255,255,0.45)",
+              letterSpacing: "0.02em",
+            }}>
+              absoluThings
+            </p>
+          </div>
+          {/* Close */}
+          <button
+            onClick={() => setToastVisible(false)}
+            style={{
+              flexShrink: 0,
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.4)",
+              fontSize: "18px",
+              cursor: "pointer",
+              padding: "0",
+              lineHeight: 1,
+              marginTop: "1px",
+            }}
+          >
+            ×
+          </button>
+        </div>
+        {/* Progress bar */}
+        {toastVisible && (
+          <div style={{
+            marginTop: "6px",
+            height: "2px",
+            background: "rgba(255,255,255,0.08)",
+            borderRadius: "99px",
+            overflow: "hidden",
+          }}>
+            <div style={{
+              height: "100%",
+              background: "linear-gradient(90deg, #4ade80, #22c55e)",
+              borderRadius: "99px",
+              animation: "toastProgress 5s linear forwards",
+            }} />
+          </div>
+        )}
+      </div>
+
+      <style>{`
+        @keyframes toastProgress {
+          from { width: 100%; }
+          to   { width: 0%; }
+        }
+      `}</style>
     </div>
   );
 }

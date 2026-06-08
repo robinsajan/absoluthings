@@ -6,11 +6,10 @@ from models import db
 
 def seed():
     with app.app_context():
-        # Drop all to recreate tables with new schema and clear all data
-        db.drop_all()
+        # Create tables if they do not exist (retains existing data)
         db.create_all()
         db.session.commit()
-        print("Database cleared and initialized with empty tables successfully!")
+        print("Database tables verified/created successfully (no data cleared).")
 
 if __name__ == '__main__':
     seed()

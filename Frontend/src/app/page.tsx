@@ -8,6 +8,7 @@ interface Product {
   description: string;
   price: number; // in cents
   image_url: string;
+  is_available: boolean;
 }
 
 interface WaitingListEntry {
@@ -19,6 +20,7 @@ interface WaitingListEntry {
 
 interface PastOrder {
   id: number;
+  order_no: string;
   product_id: string;
   quantity: number;
   status: string;
@@ -41,8 +43,17 @@ export default function Home() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [waitlistProductId, setWaitlistProductId] = useState<string | null>(null);
   const [waitlistEmail, setWaitlistEmail] = useState("");
+  const [waitlistPincode, setWaitlistPincode] = useState("");
   const [waitlistMessage, setWaitlistMessage] = useState("");
   const [waitlistError, setWaitlistError] = useState("");
+
+  // Order Now modal state
+  const [orderProductId, setOrderProductId] = useState<string | null>(null);
+  const [orderEmail, setOrderEmail] = useState("");
+  const [orderPincode, setOrderPincode] = useState("");
+  const [orderQty, setOrderQty] = useState(1);
+  const [orderMessage, setOrderMessage] = useState("");
+  const [orderError, setOrderError] = useState("");
 
   // OTP Auth state
   const [authEmail, setAuthEmail] = useState("");
@@ -76,10 +87,11 @@ export default function Home() {
     }
   }, []);
 
-  // Set waitlistEmail automatically if authenticated
+  // Set waitlistEmail and orderEmail automatically if authenticated
   useEffect(() => {
     if (isAuthenticated && userEmail) {
       setWaitlistEmail(userEmail);
+      setOrderEmail(userEmail);
     }
   }, [isAuthenticated, userEmail]);
 
@@ -121,6 +133,10 @@ export default function Home() {
       setWaitlistError("Please enter a valid email address.");
       return;
     }
+    if (!waitlistPincode.trim() || waitlistPincode.trim().length < 6) {
+      setWaitlistError("Please enter a valid 6-digit pincode.");
+      return;
+    }
 
     try {
       const res = await fetch(`${API_BASE_URL}/api/waitinglist/join`, {
@@ -129,17 +145,14 @@ export default function Home() {
         body: JSON.stringify({
           email: waitlistEmail,
           product_id: waitlistProductId,
+          pincode: waitlistPincode,
         }),
       });
 
       const data = await res.json();
       if (res.ok) {
         setWaitlistMessage(data.message || "Successfully joined!");
-        if (isAuthenticated && userEmail) {
-          setWaitlistEmail(userEmail);
-        } else {
-          setWaitlistEmail("");
-        }
+        setWaitlistPincode("");
         setTimeout(() => setWaitlistProductId(null), 3000);
         if (token) {
           fetchOrders(token);
@@ -149,6 +162,53 @@ export default function Home() {
       }
     } catch (err) {
       setWaitlistError("Failed to connect to backend server.");
+    }
+  };
+
+  const handleOrderNow = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setOrderError("");
+    setOrderMessage("");
+
+    if (!orderEmail.trim() || !orderProductId) {
+      setOrderError("Please enter a valid email address.");
+      return;
+    }
+    if (!orderPincode.trim() || orderPincode.trim().length < 6) {
+      setOrderError("Please enter a valid 6-digit pincode.");
+      return;
+    }
+    if (orderQty < 1) {
+      setOrderError("Quantity must be at least 1.");
+      return;
+    }
+
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/orders/create`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: orderEmail,
+          product_id: orderProductId,
+          pincode: orderPincode,
+          quantity: orderQty,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        setOrderMessage(data.message || "Order placed successfully!");
+        setOrderPincode("");
+        setOrderQty(1);
+        setTimeout(() => setOrderProductId(null), 4000);
+        if (token) {
+          fetchOrders(token);
+        }
+      } else {
+        setOrderError(data.error || "An error occurred.");
+      }
+    } catch (err) {
+      setOrderError("Failed to connect to backend server.");
     }
   };
 
@@ -427,6 +487,15 @@ export default function Home() {
                     <div className="absolute top-3 left-3 bg-primary text-on-primary font-label-caps text-[9px] px-2.5 py-1 tracking-[0.1em] uppercase pointer-events-none">
                       {product.id}
                     </div>
+                    {product.is_available ? (
+                      <div className="absolute top-3 right-3 bg-green-600 text-white font-label-caps text-[9px] px-2.5 py-1 tracking-[0.1em] uppercase pointer-events-none">
+                        In Stock
+                      </div>
+                    ) : (
+                      <div className="absolute top-3 right-3 bg-amber-500 text-white font-label-caps text-[9px] px-2.5 py-1 tracking-[0.1em] uppercase pointer-events-none">
+                        Waitlist
+                      </div>
+                    )}
                   </div>
                   <div className="p-6 flex-grow flex flex-col justify-between">
                     <div>
@@ -439,16 +508,29 @@ export default function Home() {
                     </div>
 
                     <div className="flex flex-col gap-2.5 mt-auto">
-                      <button
-                        onClick={() => {
-                          setWaitlistProductId(product.id);
-                          setWaitlistError("");
-                          setWaitlistMessage("");
-                        }}
-                        className="w-full bg-primary text-on-primary text-[10px] tracking-[0.15em] uppercase py-3.5 font-label-caps hover:bg-on-surface-variant transition-colors"
-                      >
-                        Join Waitlist
-                      </button>
+                      {product.is_available ? (
+                        <button
+                          onClick={() => {
+                            setOrderProductId(product.id);
+                            setOrderError("");
+                            setOrderMessage("");
+                          }}
+                          className="w-full bg-primary text-on-primary text-[10px] tracking-[0.15em] uppercase py-3.5 font-label-caps hover:bg-on-surface-variant transition-colors"
+                        >
+                          Order Now
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => {
+                            setWaitlistProductId(product.id);
+                            setWaitlistError("");
+                            setWaitlistMessage("");
+                          }}
+                          className="w-full bg-primary text-on-primary text-[10px] tracking-[0.15em] uppercase py-3.5 font-label-caps hover:bg-on-surface-variant transition-colors"
+                        >
+                          Join Waitlist
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -489,6 +571,21 @@ export default function Home() {
                   />
                 </div>
 
+                <div>
+                  <label className="font-label-caps text-[10px] text-on-surface-variant tracking-wider uppercase mb-1.5 block">
+                    Pincode
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={waitlistPincode}
+                    onChange={(e) => setWaitlistPincode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="6-digit pincode"
+                    className="w-full px-4 py-3 border border-primary/20 focus:border-primary outline-none font-body text-[14px] bg-surface rounded-sm tracking-widest"
+                  />
+                </div>
+
                 {waitlistError && (
                   <p className="text-red-600 font-body text-[12px]">{waitlistError}</p>
                 )}
@@ -501,6 +598,102 @@ export default function Home() {
                   className="bg-primary text-on-primary font-label-caps text-[11px] py-4 uppercase tracking-[0.2em] hover:bg-on-surface-variant transition-colors mt-2"
                 >
                   Confirm Registration
+                </button>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Modal: Order Now */}
+        {orderProductId && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-primary/40 backdrop-blur-sm p-4">
+            <div className="bg-surface w-full max-w-md p-8 rounded-sm border border-primary/15 shadow-xl relative animate-fade-in">
+              <button
+                onClick={() => setOrderProductId(null)}
+                className="absolute top-4 right-4 text-[20px] text-on-surface-variant hover:text-primary"
+              >
+                &times;
+              </button>
+              <p className="font-label-caps text-[10px] text-on-tertiary-container tracking-widest uppercase mb-2">
+                Place Order
+              </p>
+              <h3 className="font-display text-[22px] text-primary mb-1 uppercase">
+                {products.find((p) => p.id === orderProductId)?.name || orderProductId}
+              </h3>
+              <p className="font-body text-[13px] text-on-surface-variant mb-6">
+                ₹{products.find((p) => p.id === orderProductId)?.price || 0} per unit
+              </p>
+
+              <form onSubmit={handleOrderNow} className="flex flex-col gap-4">
+                <div>
+                  <label className="font-label-caps text-[10px] text-on-surface-variant tracking-wider uppercase mb-1.5 block">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={orderEmail}
+                    onChange={(e) => setOrderEmail(e.target.value)}
+                    placeholder="Enter your email"
+                    className="w-full px-4 py-3 border border-primary/20 focus:border-primary outline-none font-body text-[14px] bg-surface rounded-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-label-caps text-[10px] text-on-surface-variant tracking-wider uppercase mb-1.5 block">
+                    Delivery Pincode
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    maxLength={6}
+                    value={orderPincode}
+                    onChange={(e) => setOrderPincode(e.target.value.replace(/\D/g, ""))}
+                    placeholder="6-digit pincode"
+                    className="w-full px-4 py-3 border border-primary/20 focus:border-primary outline-none font-body text-[14px] bg-surface rounded-sm tracking-widest"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-label-caps text-[10px] text-on-surface-variant tracking-wider uppercase mb-1.5 block">
+                    Quantity
+                  </label>
+                  <div className="flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => setOrderQty((q) => Math.max(1, q - 1))}
+                      className="w-10 h-10 border border-primary/20 font-display text-[18px] hover:bg-primary/5 transition-colors rounded-sm"
+                    >
+                      −
+                    </button>
+                    <span className="font-display text-[18px] text-primary w-8 text-center">
+                      {orderQty}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setOrderQty((q) => q + 1)}
+                      className="w-10 h-10 border border-primary/20 font-display text-[18px] hover:bg-primary/5 transition-colors rounded-sm"
+                    >
+                      +
+                    </button>
+                    <span className="font-body text-[13px] text-on-surface-variant ml-2">
+                      = ₹{(products.find((p) => p.id === orderProductId)?.price || 0) * orderQty}
+                    </span>
+                  </div>
+                </div>
+
+                {orderError && (
+                  <p className="text-red-600 font-body text-[12px]">{orderError}</p>
+                )}
+                {orderMessage && (
+                  <p className="text-green-600 font-body text-[13px] font-medium">{orderMessage}</p>
+                )}
+
+                <button
+                  type="submit"
+                  className="bg-primary text-on-primary font-label-caps text-[11px] py-4 uppercase tracking-[0.2em] hover:bg-on-surface-variant transition-colors mt-2"
+                >
+                  Confirm Order — ₹{(products.find((p) => p.id === orderProductId)?.price || 0) * orderQty}
                 </button>
               </form>
             </div>
@@ -694,21 +887,22 @@ export default function Home() {
                     ) : (
                       <div className="flex flex-col gap-4">
                         {pastOrders.map((order) => (
-                          <div key={order.id} className="flex gap-4 items-center bg-surface border border-primary/5 p-3 rounded-sm">
+                          <div key={order.id} className="flex gap-4 items-start bg-surface border border-primary/5 p-3 rounded-sm hover:border-primary/15 transition-colors">
                             <img
                               src={order.product?.image_url}
                               alt={order.product?.name}
                               className="w-12 h-12 object-cover bg-surface-variant rounded-sm flex-shrink-0"
                             />
-                            <div className="flex-grow">
-                              <h4 className="font-display text-[13px] uppercase text-primary tracking-wide">
+                            <div className="flex-grow min-w-0">
+                              <h4 className="font-display text-[13px] uppercase text-primary tracking-wide truncate">
                                 {order.product?.name}
                               </h4>
-                              <p className="font-body text-[11px] text-on-surface-variant">
-                                Qty: {order.quantity} | Total: ₹{order.product ? (order.product.price * order.quantity) : 0}
+                              <p className="font-label-caps text-[9px] text-amber-600 tracking-wider mt-0.5">{order.order_no}</p>
+                              <p className="font-body text-[11px] text-on-surface-variant mt-1">
+                                Qty: {order.quantity} · ₹{order.product ? (order.product.price * order.quantity) : 0}
                               </p>
-                              <p className="font-body text-[10px] text-on-surface-variant mt-1">
-                                Status: <strong className="text-primary">{order.status}</strong>
+                              <p className="font-body text-[10px] text-on-surface-variant">
+                                Status: <strong className="text-green-600">{order.status}</strong>
                               </p>
                             </div>
                           </div>

@@ -10,10 +10,13 @@ class Product(db.Model):
     description = db.Column(db.Text)
     price = db.Column(db.Integer, nullable=False)  # in cents
     image_url = db.Column(db.String(255))
+    is_available = db.Column(db.Boolean, default=False, nullable=False)  # True = Order Now, False = Waiting List
+    size_details = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Relationship to get all secondary images
     images = db.relationship('ProductImage', backref='product', cascade='all, delete-orphan', lazy=True)
+    reviews = db.relationship('Review', backref='product', cascade='all, delete-orphan', lazy=True)
 
     def to_dict(self):
         imgs = [img.image_url for img in sorted(self.images, key=lambda x: x.display_order)] if self.images else []
@@ -25,6 +28,8 @@ class Product(db.Model):
             'description': self.description,
             'price': self.price,
             'image_url': self.image_url,
+            'is_available': self.is_available,
+            'size_details': self.size_details,
             'images': imgs,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
@@ -50,6 +55,7 @@ class WaitingList(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     email = db.Column(db.String(120), nullable=False)
     product_id = db.Column(db.String(50), db.ForeignKey('products.id'), nullable=False)
+    pincode = db.Column(db.String(10), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     product = db.relationship('Product', backref='waiting_list_entries')
@@ -59,6 +65,7 @@ class WaitingList(db.Model):
             'id': self.id,
             'email': self.email,
             'product_id': self.product_id,
+            'pincode': self.pincode,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'product': self.product.to_dict() if self.product else None
         }
@@ -95,9 +102,11 @@ class OTP(db.Model):
 class PastOrder(db.Model):
     __tablename__ = 'past_orders'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order_no = db.Column(db.String(20), unique=True, nullable=False)
     email = db.Column(db.String(120), nullable=False)
     product_id = db.Column(db.String(50), db.ForeignKey('products.id'), nullable=False)
     quantity = db.Column(db.Integer, nullable=False, default=1)
+    pincode = db.Column(db.String(10), nullable=False)
     status = db.Column(db.String(50), default='Processing')
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
@@ -106,12 +115,33 @@ class PastOrder(db.Model):
     def to_dict(self):
         return {
             'id': self.id,
+            'order_no': self.order_no,
             'email': self.email,
             'product_id': self.product_id,
             'quantity': self.quantity,
+            'pincode': self.pincode,
             'status': self.status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'product': self.product.to_dict() if self.product else None
+        }
+
+class Review(db.Model):
+    __tablename__ = 'reviews'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    product_id = db.Column(db.String(50), db.ForeignKey('products.id'), nullable=False)
+    reviewer_name = db.Column(db.String(100), nullable=False)
+    rating = db.Column(db.Integer, nullable=False)  # 1–5 stars
+    comment = db.Column(db.Text, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'product_id': self.product_id,
+            'reviewer_name': self.reviewer_name,
+            'rating': self.rating,
+            'comment': self.comment,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
 class CustomRequest(db.Model):

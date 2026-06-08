@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import resend
-from models import db, Product, WaitingList, CartItem, OTP, ProductImage, PastOrder, CustomRequest
+from models import db, Product, WaitingList, CartItem, OTP, ProductImage, PastOrder, CustomRequest, Review
 
 load_dotenv()
 
@@ -83,7 +83,7 @@ def get_products():
 
 @app.route('/api/products/<product_id>', methods=['GET'])
 def get_product(product_id):
-    product = Product.query.get(product_id)
+    product = db.session.get(Product, product_id)
     if not product:
         return jsonify({'error': 'Product not found'}), 404
     return jsonify(product.to_dict()), 200
@@ -93,11 +93,14 @@ def join_waiting_list():
     data = request.get_json() or {}
     email = data.get('email', '').strip().lower()
     product_id = data.get('product_id', '').strip()
+    pincode = data.get('pincode', '').strip()
 
     if not email or not validate_email(email):
         return jsonify({'error': 'A valid email address is required'}), 400
+    if not pincode:
+        return jsonify({'error': 'Pincode is required'}), 400
 
-    product = Product.query.get(product_id)
+    product = db.session.get(Product, product_id)
     if not product:
         return jsonify({'error': f'Product {product_id} does not exist'}), 404
 
@@ -106,13 +109,91 @@ def join_waiting_list():
     if existing:
         return jsonify({'error': 'You are already on the waiting list for this product'}), 400
 
-    new_entry = WaitingList(email=email, product_id=product_id)
+    new_entry = WaitingList(email=email, product_id=product_id, pincode=pincode)
     db.session.add(new_entry)
     db.session.commit()
 
     return jsonify({
         'message': 'Successfully joined the waiting list',
         'entry': new_entry.to_dict()
+    }), 201
+
+@app.route('/api/orders/create', methods=['POST'])
+def create_direct_order():
+    data = request.get_json() or {}
+    email = data.get('email', '').strip().lower()
+    product_id = data.get('product_id', '').strip()
+    pincode = data.get('pincode', '').strip()
+    quantity = int(data.get('quantity', 1))
+
+    if not email or not validate_email(email):
+        return jsonify({'error': 'A valid email address is required'}), 400
+    if not pincode:
+        return jsonify({'error': 'Pincode is required'}), 400
+    if quantity < 1:
+        return jsonify({'error': 'Quantity must be at least 1'}), 400
+
+    product = db.session.get(Product, product_id)
+    if not product:
+        return jsonify({'error': f'Product {product_id} does not exist'}), 404
+
+    # Generate unique order number
+    order_no = f'#ORD-{random.randint(100000, 999999)}'
+    while PastOrder.query.filter_by(order_no=order_no).first():
+        order_no = f'#ORD-{random.randint(100000, 999999)}'
+
+    new_order = PastOrder(
+        order_no=order_no,
+        email=email,
+        product_id=product_id,
+        quantity=quantity,
+        pincode=pincode,
+        status='Confirmed'
+    )
+    db.session.add(new_order)
+    db.session.commit()
+
+    return jsonify({
+        'message': f'Order placed successfully! Your order number is {order_no}.',
+        'order': new_order.to_dict()
+    }), 201
+
+@app.route('/api/products/<product_id>/reviews', methods=['GET'])
+def get_reviews(product_id):
+    product = db.session.get(Product, product_id)
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+    reviews = Review.query.filter_by(product_id=product_id).order_by(Review.created_at.desc()).all()
+    return jsonify([r.to_dict() for r in reviews]), 200
+
+@app.route('/api/products/<product_id>/reviews', methods=['POST'])
+def create_review(product_id):
+    product = db.session.get(Product, product_id)
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+
+    data = request.get_json() or {}
+    reviewer_name = data.get('reviewer_name', '').strip()
+    rating = data.get('rating')
+    comment = data.get('comment', '').strip()
+
+    if not reviewer_name or not comment:
+        return jsonify({'error': 'Name and comment are required'}), 400
+    if rating is None or int(rating) < 1 or int(rating) > 5:
+        return jsonify({'error': 'Rating must be between 1 and 5'}), 400
+
+    new_review = Review(
+        product_id=product_id,
+        reviewer_name=reviewer_name,
+        rating=int(rating),
+        comment=comment
+    )
+    db.session.add(new_review)
+    db.session.commit()
+
+    return jsonify({
+        'message': 'Review submitted successfully!',
+        'review': new_review.to_dict()
     }), 201
 
 @app.route('/api/custom-requests', methods=['POST'])
@@ -253,7 +334,7 @@ def add_to_cart(email):
     if not product_id or quantity <= 0:
         return jsonify({'error': 'Product ID and a positive quantity are required'}), 400
 
-    product = Product.query.get(product_id)
+    product = db.session.get(Product, product_id)
     if not product:
         return jsonify({'error': 'Product not found'}), 404
 

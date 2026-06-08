@@ -4,10 +4,10 @@ import json
 from app import app
 from models import db, Product, ProductImage
 
-def add_product(product_id, name, description, price, image_url, additional_images=None):
+def add_product(product_id, name, description, price, image_url, additional_images=None, is_available=False, size_details=None):
     with app.app_context():
         # Check if product already exists
-        existing = Product.query.get(product_id)
+        existing = db.session.get(Product, product_id)
         if existing:
             print(f"Product with ID '{product_id}' already exists. Use update action to modify it.")
             return False
@@ -17,7 +17,9 @@ def add_product(product_id, name, description, price, image_url, additional_imag
             name=name,
             description=description,
             price=price,
-            image_url=image_url
+            image_url=image_url,
+            is_available=is_available,
+            size_details=size_details
         )
         db.session.add(new_prod)
         db.session.flush() # Flush to get new_prod associated
@@ -48,14 +50,15 @@ def list_products():
             print(f"Name:        {p.name}")
             print(f"Price:       ₹{p.price}")
             print(f"Description: {p.description}")
+            print(f"Size:        {p.size_details}")
             print(f"Image URL:   {p.image_url}")
             imgs = [img.image_url for img in sorted(p.images, key=lambda x: x.display_order)]
             print(f"Gallery:     {', '.join(imgs) if imgs else 'None'}")
             print("-" * 30)
 
-def update_product(product_id, name=None, description=None, price=None, image_url=None, additional_images=None):
+def update_product(product_id, name=None, description=None, price=None, image_url=None, additional_images=None, is_available=None, size_details=None):
     with app.app_context():
-        p = Product.query.get(product_id)
+        p = db.session.get(Product, product_id)
         if not p:
             print(f"Product with ID '{product_id}' not found.")
             return False
@@ -68,6 +71,10 @@ def update_product(product_id, name=None, description=None, price=None, image_ur
             p.price = price
         if image_url:
             p.image_url = image_url
+        if is_available is not None:
+            p.is_available = is_available
+        if size_details:
+            p.size_details = size_details
             
         if additional_images is not None:
             # Clear existing secondary images
@@ -86,7 +93,7 @@ def update_product(product_id, name=None, description=None, price=None, image_ur
 
 def delete_product(product_id):
     with app.app_context():
-        p = Product.query.get(product_id)
+        p = db.session.get(Product, product_id)
         if not p:
             print(f"Product with ID '{product_id}' not found.")
             return False
@@ -116,19 +123,21 @@ def import_from_json(file_path):
             desc = item.get('description', '')
             img_url = item.get('image_url', '')
             gallery = item.get('images', [])
+            is_avail = item.get('is_available', False)
+            size = item.get('size_details', '')
 
             if not p_id or not name or price is None:
                 print(f"Skipping item #{idx}: 'id', 'name', and 'price' are required.")
                 continue
 
             # Check if it exists to add or update
-            existing = Product.query.get(p_id)
+            existing = db.session.get(Product, p_id)
             if existing:
                 print(f"Updating product '{p_id}'...")
-                update_product(p_id, name=name, description=desc, price=price, image_url=img_url, additional_images=gallery)
+                update_product(p_id, name=name, description=desc, price=price, image_url=img_url, additional_images=gallery, is_available=is_avail, size_details=size)
             else:
                 print(f"Adding product '{p_id}'...")
-                add_product(p_id, name=name, description=desc, price=price, image_url=img_url, additional_images=gallery)
+                add_product(p_id, name=name, description=desc, price=price, image_url=img_url, additional_images=gallery, is_available=is_avail, size_details=size)
             success_count += 1
             
     print(f"Successfully processed {success_count} products from JSON.")
@@ -146,6 +155,8 @@ if __name__ == '__main__':
     parser.add_argument('--image', help="Product primary image URL")
     parser.add_argument('--images', help="Comma-separated gallery image URLs")
     parser.add_argument('--file', help="Path to JSON file for import action")
+    parser.add_argument('--available', type=lambda x: (str(x).lower() in ['true', '1', 'yes']), default=None, help="Whether product is available for direct ordering (true/false)")
+    parser.add_argument('--size', help="Product size/dimension details")
     
     args = parser.parse_args()
     
@@ -155,12 +166,13 @@ if __name__ == '__main__':
         if not args.id or not args.name or args.price is None:
             print("Error: --id, --name, and --price are required for 'add' action.")
             sys.exit(1)
-        add_product(args.id, args.name, args.desc or '', args.price, args.image or '', args.images)
+        is_avail = args.available if args.available is not None else False
+        add_product(args.id, args.name, args.desc or '', args.price, args.image or '', args.images, is_avail, args.size)
     elif args.action == 'update':
         if not args.id:
             print("Error: --id is required for 'update' action.")
             sys.exit(1)
-        update_product(args.id, args.name, args.desc, args.price, args.image, args.images)
+        update_product(args.id, args.name, args.desc, args.price, args.image, args.images, args.available, args.size)
     elif args.action == 'delete':
         if not args.id:
             print("Error: --id is required for 'delete' action.")

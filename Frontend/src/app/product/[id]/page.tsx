@@ -10,6 +10,7 @@ interface Product {
   image_url: string;
   is_available: boolean;
   images: string[];
+  size_details?: string;
 }
 
 interface WaitingListEntry {
@@ -393,17 +394,37 @@ export default function ProductDetailPage({ params }: PageProps) {
             </a>
             <button
               onClick={() => setIsCartOpen(true)}
-              className="font-label-caps text-label-caps border border-primary/20 hover:border-primary px-5 py-2 uppercase transition-all duration-300 flex items-center gap-2"
+              className="relative p-2.5 border border-primary/25 hover:border-primary/60 transition-all duration-300 rounded-sm flex items-center justify-center group"
+              aria-label="View Orders"
             >
-              View Orders {(waitingList.length + pastOrders.length) > 0 && `(${waitingList.length + pastOrders.length})`}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary group-hover:scale-105 transition-transform duration-300">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              {(waitingList.length + pastOrders.length) > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-primary text-on-primary font-display text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-sm">
+                  {waitingList.length + pastOrders.length}
+                </span>
+              )}
             </button>
           </nav>
           <div className="flex md:hidden items-center gap-3">
             <button
               onClick={() => setIsCartOpen(true)}
-              className="font-label-caps text-[10px] border border-primary/20 hover:border-primary px-3 py-1.5 uppercase transition-all duration-300"
+              className="relative p-2 border border-primary/25 hover:border-primary/60 transition-all duration-300 rounded-sm flex items-center justify-center group"
+              aria-label="View Orders"
             >
-              Orders {(waitingList.length + pastOrders.length) > 0 && `(${waitingList.length + pastOrders.length})`}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              {(waitingList.length + pastOrders.length) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-on-primary font-display text-[8px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold shadow-sm">
+                  {waitingList.length + pastOrders.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -493,9 +514,15 @@ export default function ProductDetailPage({ params }: PageProps) {
               )}
 
               <div className="hairline w-16 mb-6"></div>
-              <p className="font-body text-[14px] text-on-surface-variant leading-relaxed mb-8">
+              <p className="font-body text-[14px] text-on-surface-variant leading-relaxed mb-4">
                 {product.description}
               </p>
+              {product.size_details && (
+                <div className="flex flex-col gap-1 mb-8">
+                  <span className="font-label-caps text-[10px] text-on-tertiary-container tracking-wider uppercase">Dimensions</span>
+                  <span className="font-body text-[13px] text-primary">{product.size_details}</span>
+                </div>
+              )}
 
               <div className="flex flex-col gap-3 mt-auto">
                 {product.is_available ? (
@@ -758,13 +785,41 @@ export default function ProductDetailPage({ params }: PageProps) {
                   {/* Confirmed Orders */}
                   <div>
                     <h3 className="font-label-caps text-[11px] uppercase tracking-wider text-on-tertiary-container mb-4 pb-2 border-b border-primary/5">
-                      Confirmed Orders ({pastOrders.length})
+                      Confirmed Orders ({pastOrders.filter((order) => order.status !== "Delivered").length})
                     </h3>
-                    {pastOrders.length === 0 ? (
-                      <p className="font-body text-[13px] text-on-surface-variant italic py-2">No orders placed yet.</p>
+                    {pastOrders.filter((order) => order.status !== "Delivered").length === 0 ? (
+                      <p className="font-body text-[13px] text-on-surface-variant italic py-2">No active orders.</p>
                     ) : (
                       <div className="flex flex-col gap-4">
-                        {pastOrders.map((order) => (
+                        {pastOrders.filter((order) => order.status !== "Delivered").map((order) => (
+                          <div key={order.id} className="flex gap-4 items-start bg-surface border border-primary/5 p-3 rounded-sm hover:border-primary/15 transition-colors">
+                            <img src={order.product?.image_url} alt={order.product?.name} className="w-12 h-12 object-cover bg-surface-variant rounded-sm flex-shrink-0" />
+                            <div className="flex-grow min-w-0">
+                              <h4 className="font-display text-[13px] uppercase text-primary tracking-wide truncate">{order.product?.name}</h4>
+                              <p className="font-label-caps text-[9px] text-amber-600 tracking-wider mt-0.5">{order.order_no}</p>
+                              <p className="font-body text-[11px] text-on-surface-variant mt-1">
+                                Qty: {order.quantity} · ₹{order.product ? order.product.price * order.quantity : 0}
+                              </p>
+                              <p className="font-body text-[10px] text-on-surface-variant">
+                                Status: <strong className="text-green-600">{order.status}</strong>
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Past Orders */}
+                  <div>
+                    <h3 className="font-label-caps text-[11px] uppercase tracking-wider text-on-tertiary-container mb-4 pb-2 border-b border-primary/5">
+                      Past Orders ({pastOrders.filter((order) => order.status === "Delivered").length})
+                    </h3>
+                    {pastOrders.filter((order) => order.status === "Delivered").length === 0 ? (
+                      <p className="font-body text-[13px] text-on-surface-variant italic py-2">No past orders found.</p>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        {pastOrders.filter((order) => order.status === "Delivered").map((order) => (
                           <div key={order.id} className="flex gap-4 items-start bg-surface border border-primary/5 p-3 rounded-sm hover:border-primary/15 transition-colors">
                             <img src={order.product?.image_url} alt={order.product?.name} className="w-12 h-12 object-cover bg-surface-variant rounded-sm flex-shrink-0" />
                             <div className="flex-grow min-w-0">

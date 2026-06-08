@@ -9,6 +9,7 @@ interface Product {
   price: number; // in cents
   image_url: string;
   is_available: boolean;
+  size_details?: string;
 }
 
 interface WaitingListEntry {
@@ -308,19 +309,39 @@ export default function Home() {
             </a>
             <button
               onClick={() => setIsCartOpen(true)}
-              className="font-label-caps text-label-caps border border-primary/20 hover:border-primary px-5 py-2 uppercase transition-all duration-300 flex items-center gap-2"
+              className="relative p-2.5 border border-primary/25 hover:border-primary/60 transition-all duration-300 rounded-sm flex items-center justify-center group"
+              aria-label="View Orders"
             >
-              View Orders {(waitingList.length + pastOrders.length) > 0 && `(${waitingList.length + pastOrders.length})`}
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary group-hover:scale-105 transition-transform duration-300">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              {(waitingList.length + pastOrders.length) > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 bg-primary text-on-primary font-display text-[9px] w-5 h-5 rounded-full flex items-center justify-center font-bold shadow-sm">
+                  {waitingList.length + pastOrders.length}
+                </span>
+              )}
             </button>
           </nav>
-
+ 
           {/* Mobile Trigger Buttons */}
           <div className="flex md:hidden items-center gap-3">
             <button
               onClick={() => setIsCartOpen(true)}
-              className="font-label-caps text-[10px] border border-primary/20 hover:border-primary px-3 py-1.5 uppercase transition-all duration-300 flex items-center gap-1"
+              className="relative p-2 border border-primary/25 hover:border-primary/60 transition-all duration-300 rounded-sm flex items-center justify-center group"
+              aria-label="View Orders"
             >
-              Orders {(waitingList.length + pastOrders.length) > 0 && `(${waitingList.length + pastOrders.length})`}
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                <circle cx="9" cy="21" r="1"></circle>
+                <circle cx="20" cy="21" r="1"></circle>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+              </svg>
+              {(waitingList.length + pastOrders.length) > 0 && (
+                <span className="absolute -top-1 -right-1 bg-primary text-on-primary font-display text-[8px] w-4.5 h-4.5 rounded-full flex items-center justify-center font-bold shadow-sm">
+                  {waitingList.length + pastOrders.length}
+                </span>
+              )}
             </button>
             <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -365,69 +386,73 @@ export default function Home() {
 
           {/* Hero Image — static if 1 product, crossfade carousel if many */}
           {products.length > 0 ? (
-            <div className="relative w-full max-w-3xl h-[260px] sm:h-[380px] md:h-[480px] overflow-hidden bg-surface-variant border border-primary/5 rounded-sm mt-3 mb-6 sm:mt-4 sm:mb-8 shadow-sm">
-              {products.length === 1 ? (
-                <>
-                  <img
-                    src={products[0].image_url}
-                    alt={products[0].name}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent flex flex-col justify-end p-6 md:p-10 text-left z-10">
-                    <p className="font-label-caps text-[10px] text-white/70 tracking-widest uppercase mb-1">
-                      Featured Series / {products[0].id}
-                    </p>
-                    <h2 className="font-display text-[22px] md:text-[34px] text-white uppercase tracking-wide leading-tight">
-                      {products[0].name}
-                    </h2>
-                    <a
-                      href={`/product/${products[0].id}`}
-                      className="mt-4 self-start bg-white/15 backdrop-blur-sm border border-white/30 hover:bg-white/25 text-white font-label-caps text-[10px] tracking-[0.18em] uppercase px-5 py-2.5 rounded-sm transition-all duration-300"
-                    >
-                      Order Now
-                    </a>
-                  </div>
-                </>
-              ) : (
-                products.map((product, idx) => (
-                  <div
-                    key={product.id}
-                    className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === heroImageIndex ? "opacity-100 z-10" : "opacity-0 z-0"
-                      }`}
-                  >
+            <div className="w-full flex flex-col items-center">
+              <div className="relative w-full max-w-3xl h-[260px] sm:h-[380px] md:h-[480px] overflow-hidden bg-surface-variant border border-primary/5 rounded-sm mt-3 mb-6 sm:mt-4 sm:mb-8 shadow-sm">
+                {products.length === 1 ? (
+                  <>
                     <img
-                      src={product.image_url}
-                      alt={product.name}
+                      src={products[0].image_url}
+                      alt={products[0].name}
                       className="w-full h-full object-cover"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent flex flex-col justify-end p-6 md:p-10 text-left">
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent flex flex-col justify-end p-6 md:p-10 text-left z-10">
                       <p className="font-label-caps text-[10px] text-white/70 tracking-widest uppercase mb-1">
-                        Featured Series / {product.id}
+                        Featured Series / {products[0].id}
                       </p>
                       <h2 className="font-display text-[22px] md:text-[34px] text-white uppercase tracking-wide leading-tight">
-                        {product.name}
+                        {products[0].name}
                       </h2>
                       <a
-                        href={`/product/${product.id}`}
+                        href={`/product/${products[0].id}`}
                         className="mt-4 self-start bg-white/15 backdrop-blur-sm border border-white/30 hover:bg-white/25 text-white font-label-caps text-[10px] tracking-[0.18em] uppercase px-5 py-2.5 rounded-sm transition-all duration-300"
                       >
                         Order Now
                       </a>
                     </div>
-                  </div>
-                ))
-              )}
+                  </>
+                ) : (
+                  products.map((product, idx) => (
+                    <div
+                      key={product.id}
+                      className={`absolute inset-0 transition-opacity duration-1000 ease-in-out ${idx === heroImageIndex ? "opacity-100 z-10" : "opacity-0 z-0"
+                        }`}
+                    >
+                      <img
+                        src={product.image_url}
+                        alt={product.name}
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-transparent to-transparent flex flex-col justify-end p-6 md:p-10 text-left">
+                        <p className="font-label-caps text-[10px] text-white/70 tracking-widest uppercase mb-1">
+                          Featured Series / {product.id}
+                        </p>
+                        <h2 className="font-display text-[22px] md:text-[34px] text-white uppercase tracking-wide leading-tight">
+                          {product.name}
+                        </h2>
+                        <a
+                          href={`/product/${product.id}`}
+                          className="mt-4 self-start bg-white/15 backdrop-blur-sm border border-white/30 hover:bg-white/25 text-white font-label-caps text-[10px] tracking-[0.18em] uppercase px-5 py-2.5 rounded-sm transition-all duration-300"
+                        >
+                          Order Now
+                        </a>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
 
-              {/* Down arrow scroll indicator */}
-              <a
-                href="#products"
-                className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 text-white/70 hover:text-white transition-colors duration-300 animate-bounce"
-                aria-label="Scroll to products"
-              >
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </a>
+              {/* View all products down indicator outside the image */}
+              <div className="flex flex-col items-center mt-2 mb-4">
+                <a
+                  href="#products"
+                  className="flex flex-col items-center gap-2.5 font-label-caps text-[9px] md:text-[10px] text-on-surface-variant hover:text-primary tracking-[0.22em] uppercase transition-colors duration-300 group"
+                >
+                  <span>View All Products</span>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="group-hover:translate-y-1 transition-transform duration-300 animate-bounce">
+                    <path d="M19 9l-7 7-7-7" strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                </a>
+              </div>
             </div>
           ) : (
             <div className="w-full max-w-3xl h-[260px] sm:h-[480px] bg-surface-variant/50 animate-pulse rounded-sm my-6 sm:my-8 flex items-center justify-center">
@@ -502,9 +527,14 @@ export default function Home() {
                       <h3 className="font-display text-[18px] text-primary mb-1 uppercase tracking-wide hover:opacity-80 transition-opacity">
                         <a href={`/product/${product.id}`}>{product.name}</a>
                       </h3>
-                      <p className="font-label-caps text-[12px] text-primary mb-4">
+                      <p className="font-label-caps text-[12px] text-primary mb-1.5">
                         ₹{product.price}
                       </p>
+                      {product.size_details && (
+                        <p className="font-body text-[11px] text-on-surface-variant mb-4">
+                          Size: {product.size_details}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex flex-col gap-2.5 mt-auto">
@@ -875,18 +905,54 @@ export default function Home() {
                     )}
                   </div>
 
-                  {/* Section 2: Past Orders */}
+                  {/* Section 2: Confirmed Orders */}
                   <div>
                     <h3 className="font-label-caps text-[11px] uppercase tracking-wider text-on-tertiary-container mb-4 pb-2 border-b border-primary/5">
-                      Past Orders ({pastOrders.length})
+                      Confirmed Orders ({pastOrders.filter((order) => order.status !== "Delivered").length})
                     </h3>
-                    {pastOrders.length === 0 ? (
+                    {pastOrders.filter((order) => order.status !== "Delivered").length === 0 ? (
+                      <p className="font-body text-[13px] text-on-surface-variant italic py-2">
+                        No active orders.
+                      </p>
+                    ) : (
+                      <div className="flex flex-col gap-4">
+                        {pastOrders.filter((order) => order.status !== "Delivered").map((order) => (
+                          <div key={order.id} className="flex gap-4 items-start bg-surface border border-primary/5 p-3 rounded-sm hover:border-primary/15 transition-colors">
+                            <img
+                              src={order.product?.image_url}
+                              alt={order.product?.name}
+                              className="w-12 h-12 object-cover bg-surface-variant rounded-sm flex-shrink-0"
+                            />
+                            <div className="flex-grow min-w-0">
+                              <h4 className="font-display text-[13px] uppercase text-primary tracking-wide truncate">
+                                {order.product?.name}
+                              </h4>
+                              <p className="font-label-caps text-[9px] text-amber-600 tracking-wider mt-0.5">{order.order_no}</p>
+                              <p className="font-body text-[11px] text-on-surface-variant mt-1">
+                                Qty: {order.quantity} · ₹{order.product ? (order.product.price * order.quantity) : 0}
+                              </p>
+                              <p className="font-body text-[10px] text-on-surface-variant">
+                                Status: <strong className="text-green-600">{order.status}</strong>
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Section 3: Past Orders */}
+                  <div>
+                    <h3 className="font-label-caps text-[11px] uppercase tracking-wider text-on-tertiary-container mb-4 pb-2 border-b border-primary/5">
+                      Past Orders ({pastOrders.filter((order) => order.status === "Delivered").length})
+                    </h3>
+                    {pastOrders.filter((order) => order.status === "Delivered").length === 0 ? (
                       <p className="font-body text-[13px] text-on-surface-variant italic py-2">
                         No past orders found.
                       </p>
                     ) : (
                       <div className="flex flex-col gap-4">
-                        {pastOrders.map((order) => (
+                        {pastOrders.filter((order) => order.status === "Delivered").map((order) => (
                           <div key={order.id} className="flex gap-4 items-start bg-surface border border-primary/5 p-3 rounded-sm hover:border-primary/15 transition-colors">
                             <img
                               src={order.product?.image_url}

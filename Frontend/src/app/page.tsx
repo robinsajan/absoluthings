@@ -313,6 +313,9 @@ export default function Home() {
 
           {/* Desktop Nav */}
           <nav className="hidden md:flex items-center gap-8">
+            <a href="/products" className="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors uppercase tracking-[0.15em] text-[10px]">
+              Products
+            </a>
             <a href="/custom" className="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors uppercase tracking-[0.15em] text-[10px]">
               Custom
             </a>
@@ -369,6 +372,13 @@ export default function Home() {
         {isMobileMenuOpen && (
           <div className="md:hidden w-full bg-surface border-b border-primary/10 animate-fade-in">
             <div className="flex flex-col px-margin-mobile py-6 gap-4">
+              <a
+                href="/products"
+                className="font-label-caps text-[12px] text-on-surface-variant hover:text-primary uppercase tracking-[0.15em] py-2 border-b border-primary/5"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Products
+              </a>
               <a
                 href="/custom"
                 className="font-label-caps text-[12px] text-on-surface-variant hover:text-primary uppercase tracking-[0.15em] py-2 border-b border-primary/5"
@@ -1032,25 +1042,24 @@ export default function Home() {
           display: "flex",
           alignItems: "flex-start",
           gap: "14px",
-          background: "linear-gradient(135deg, #1a1a2e 0%, #16213e 100%)",
-          border: "1px solid rgba(255,255,255,0.12)",
-          borderRadius: "16px",
+          background: "#ffffff",
+          border: "1px solid #000000",
+          borderRadius: "0px",
           padding: "18px 20px",
-          boxShadow: "0 20px 60px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05)",
-          backdropFilter: "blur(20px)",
+          boxShadow: "4px 4px 0px #000000",
         }}>
           {/* Icon */}
           <div style={{
             flexShrink: 0,
-            width: "38px",
-            height: "38px",
-            borderRadius: "50%",
-            background: "linear-gradient(135deg, #4ade80, #22c55e)",
+            width: "32px",
+            height: "32px",
+            border: "1.5px solid #000000",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: "18px",
-            boxShadow: "0 4px 16px rgba(74,222,128,0.35)",
+            fontSize: "15px",
+            color: "#000000",
+            fontWeight: 700,
           }}>
             ✓
           </div>
@@ -1059,18 +1068,20 @@ export default function Home() {
             <p style={{
               margin: 0,
               fontWeight: 600,
-              fontSize: "13px",
-              color: "#ffffff",
-              letterSpacing: "0.01em",
-              lineHeight: "1.4",
+              fontSize: "12px",
+              color: "#000000",
+              letterSpacing: "0.02em",
+              lineHeight: "1.5",
+              textTransform: "uppercase",
             }}>
               {toastMessage}
             </p>
             <p style={{
               margin: "4px 0 0",
-              fontSize: "11px",
-              color: "rgba(255,255,255,0.45)",
-              letterSpacing: "0.02em",
+              fontSize: "10px",
+              color: "rgba(0,0,0,0.45)",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
             }}>
               absoluThings
             </p>
@@ -1082,12 +1093,12 @@ export default function Home() {
               flexShrink: 0,
               background: "none",
               border: "none",
-              color: "rgba(255,255,255,0.4)",
-              fontSize: "18px",
+              color: "rgba(0,0,0,0.4)",
+              fontSize: "20px",
               cursor: "pointer",
               padding: "0",
               lineHeight: 1,
-              marginTop: "1px",
+              marginTop: "-1px",
             }}
           >
             ×
@@ -1096,16 +1107,13 @@ export default function Home() {
         {/* Progress bar */}
         {toastVisible && (
           <div style={{
-            marginTop: "6px",
             height: "2px",
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: "99px",
+            background: "rgba(0,0,0,0.08)",
             overflow: "hidden",
           }}>
             <div style={{
               height: "100%",
-              background: "linear-gradient(90deg, #4ade80, #22c55e)",
-              borderRadius: "99px",
+              background: "#000000",
               animation: "toastProgress 5s linear forwards",
             }} />
           </div>

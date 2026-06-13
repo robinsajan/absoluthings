@@ -81,6 +81,8 @@ def get_products():
     products = Product.query.all()
     return jsonify([p.to_dict() for p in products]), 200
 
+
+
 @app.route('/api/products/<product_id>', methods=['GET'])
 def get_product(product_id):
     product = db.session.get(Product, product_id)
@@ -402,6 +404,33 @@ def init_db():
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # Seed dummy delivered orders if none exist
+        if PastOrder.query.count() == 0:
+            p1 = db.session.get(Product, 'thing-001')
+            p2 = db.session.get(Product, 'thing-002')
+            if p1:
+                db.session.add(PastOrder(
+                    order_no='#ORD-111111',
+                    email='demo@absoluthings.com',
+                    product_id=p1.id,
+                    quantity=1,
+                    pincode='560001',
+                    status='Delivered'
+                ))
+            if p2:
+                db.session.add(PastOrder(
+                    order_no='#ORD-222222',
+                    email='demo@absoluthings.com',
+                    product_id=p2.id,
+                    quantity=1,
+                    pincode='560001',
+                    status='Delivered'
+                ))
+            if p1 or p2:
+                db.session.commit()
+                print("Seeded delivered orders for testing.")
+                
+
     app.run(
         host='0.0.0.0',
         port=int(os.environ.get('PORT', 5000)),

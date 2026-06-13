@@ -74,6 +74,9 @@ export default function CustomPage() {
             <a href="/" className="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors uppercase tracking-[0.15em] text-[10px]">
               Home
             </a>
+            <a href="/products" className="font-label-caps text-label-caps text-on-surface-variant hover:text-primary transition-colors uppercase tracking-[0.15em] text-[10px]">
+              Products
+            </a>
             <span className="font-label-caps text-label-caps text-primary uppercase tracking-[0.15em] text-[10px] border-b border-primary/40 pb-0.5">
               Custom
             </span>
@@ -102,6 +105,13 @@ export default function CustomPage() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Home
+              </a>
+              <a
+                href="/products"
+                className="font-label-caps text-[12px] text-on-surface-variant hover:text-primary uppercase tracking-[0.15em] py-2 border-b border-primary/5"
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Products
               </a>
               <span className="font-label-caps text-[12px] text-primary uppercase tracking-[0.15em] py-2 border-b border-primary/5">
                 Custom

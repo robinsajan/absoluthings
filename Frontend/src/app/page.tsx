@@ -38,6 +38,7 @@ export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userEmail, setUserEmail] = useState("");
   const [token, setToken] = useState("");
+  const [isAdmin, setIsAdmin] = useState(false);
 
   // UI state
   const [isCartOpen, setIsCartOpen] = useState(false);
@@ -90,9 +91,11 @@ export default function Home() {
     fetchProducts();
     const storedToken = localStorage.getItem("auth_token");
     const storedEmail = localStorage.getItem("auth_email");
+    const storedIsAdmin = localStorage.getItem("auth_is_admin") === "true";
     if (storedToken && storedEmail) {
       setToken(storedToken);
       setUserEmail(storedEmail);
+      setIsAdmin(storedIsAdmin);
       setIsAuthenticated(true);
       fetchOrders(storedToken);
     }
@@ -275,8 +278,10 @@ export default function Home() {
       if (res.ok) {
         localStorage.setItem("auth_token", data.token);
         localStorage.setItem("auth_email", data.email);
+        localStorage.setItem("auth_is_admin", data.is_admin ? "true" : "false");
         setToken(data.token);
         setUserEmail(data.email);
+        setIsAdmin(!!data.is_admin);
         setIsAuthenticated(true);
         setAuthEmail("");
         setOtpCode("");
@@ -293,8 +298,10 @@ export default function Home() {
   const handleLogout = () => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("auth_email");
+    localStorage.removeItem("auth_is_admin");
     setToken("");
     setUserEmail("");
+    setIsAdmin(false);
     setIsAuthenticated(false);
     setWaitingList([]);
     setPastOrders([]);
@@ -884,12 +891,22 @@ export default function Home() {
                 <div className="flex flex-col gap-8">
                   {/* User info & Logout */}
                   <div className="flex justify-between items-center pb-4 border-b border-primary/5">
-                    <p className="font-body text-[12px] text-on-surface-variant">
-                      Logged in as: <strong className="text-primary">{userEmail}</strong>
-                    </p>
+                    <div className="flex flex-col gap-1.5">
+                      <p className="font-body text-[12px] text-on-surface-variant">
+                        Logged in as: <strong className="text-primary">{userEmail}</strong>
+                      </p>
+                      {isAdmin && (
+                        <a
+                          href="/adminadds101xxyyz101"
+                          className="font-label-caps text-[9px] tracking-wider uppercase text-primary hover:text-on-surface-variant transition-colors border border-primary/10 px-2.5 py-1.5 max-w-fit hover:bg-primary/5 rounded-sm"
+                        >
+                          Admin Console
+                        </a>
+                      )}
+                    </div>
                     <button
                       onClick={handleLogout}
-                      className="font-label-caps text-[10px] tracking-wider uppercase text-red-600 hover:text-red-800 transition-colors"
+                      className="font-label-caps text-[10px] tracking-wider uppercase text-red-600 hover:text-red-800 transition-colors cursor-pointer"
                     >
                       Logout
                     </button>

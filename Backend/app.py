@@ -7,14 +7,17 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from dotenv import load_dotenv
 import resend
-from models import db, Product, WaitingList, CartItem, OTP, ProductImage, PastOrder, CustomRequest, Review
+from werkzeug.utils import secure_filename
+from models import db, Product, WaitingList, CartItem, OTP, ProductImage, PastOrder, CustomRequest, Review, User
 
 load_dotenv()
 
 resend.api_key = os.environ.get('RESEND_API_KEY')
 
-
 app = Flask(__name__)
+app.config['UPLOAD_FOLDER'] = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'static', 'product_images')
+os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+
 # Enable CORS for Next.js frontend (typically port 3000)
 CORS(app, resources={r"/api/*": {"origins": "*"}}, supports_credentials=True)
 
@@ -69,6 +72,32 @@ def token_required(f):
     decorator.__name__ = f.__name__
     return decorator
 
+def admin_required(f):
+    def decorator(*args, **kwargs):
+        token = None
+        # Check authorization header
+        if 'Authorization' in request.headers:
+            auth_header = request.headers['Authorization']
+            if auth_header.startswith('Bearer '):
+                token = auth_header.split(" ")[1]
+        
+        if not token:
+            return jsonify({'error': 'Authentication token is missing'}), 401
+        
+        email = verify_jwt_token(token)
+        if not email:
+            return jsonify({'error': 'Token is invalid or expired'}), 401
+            
+        user = User.query.filter_by(email=email).first()
+        if not user or not user.is_admin:
+            return jsonify({'error': 'Admin privileges required'}), 403
+            
+        return f(email, *args, **kwargs)
+    
+    decorator.__name__ = f.__name__
+    return decorator
+
+
 # --- API Routes ---
 
 @app.route("/")
@@ -89,6 +118,124 @@ def get_product(product_id):
     if not product:
         return jsonify({'error': 'Product not found'}), 404
     return jsonify(product.to_dict()), 200
+
+# --- Admin API Routes ---
+
+@app.route('/api/admin/check', methods=['GET'])
+@admin_required
+def check_admin(email):
+    return jsonify({'is_admin': True, 'email': email}), 200
+
+@app.route('/api/admin/upload', methods=['POST'])
+@admin_required
+def upload_file(email):
+    if 'image' not in request.files:
+        return jsonify({'error': 'No image file provided'}), 400
+    file = request.files['image']
+    if file.filename == '':
+        return jsonify({'error': 'Empty filename'}), 400
+    
+    filename = secure_filename(file.filename)
+    name, ext = os.path.splitext(filename)
+    unique_filename = f"{name}_{int(datetime.utcnow().timestamp())}{ext}"
+    
+    upload_path = app.config['UPLOAD_FOLDER']
+    os.makedirs(upload_path, exist_ok=True)
+    file.save(os.path.join(upload_path, unique_filename))
+    
+    host_url = request.host_url
+    image_url = f"{host_url}static/product_images/{unique_filename}"
+    return jsonify({'image_url': image_url}), 200
+
+@app.route('/api/admin/products', methods=['POST'])
+@admin_required
+def admin_add_product(email):
+    data = request.get_json() or {}
+    product_id = data.get('id', '').strip()
+    name = data.get('name', '').strip()
+    description = data.get('description', '').strip()
+    price = data.get('price') # In cents
+    image_url = data.get('image_url', '').strip()
+    images = data.get('images', []) # list of gallery URLs
+    is_available = data.get('is_available', False)
+    size_details = data.get('size_details', '').strip()
+
+    if not product_id or not name or price is None:
+        return jsonify({'error': 'ID, name, and price are required'}), 400
+
+    existing = db.session.get(Product, product_id)
+    if existing:
+        return jsonify({'error': f'Product with ID {product_id} already exists'}), 400
+
+    new_prod = Product(
+        id=product_id,
+        name=name,
+        description=description,
+        price=int(price),
+        image_url=image_url,
+        is_available=is_available,
+        size_details=size_details
+    )
+    db.session.add(new_prod)
+    db.session.flush()
+
+    for idx, url in enumerate(images):
+        new_img = ProductImage(product_id=product_id, image_url=url, display_order=idx)
+        db.session.add(new_img)
+
+    db.session.commit()
+    return jsonify(new_prod.to_dict()), 201
+
+@app.route('/api/admin/products/<product_id>', methods=['PUT'])
+@admin_required
+def admin_update_product(email, product_id):
+    product = db.session.get(Product, product_id)
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+
+    data = request.get_json() or {}
+    name = data.get('name')
+    description = data.get('description')
+    price = data.get('price')
+    image_url = data.get('image_url')
+    images = data.get('images') # list of gallery URLs
+    is_available = data.get('is_available')
+    size_details = data.get('size_details')
+
+    if name is not None:
+        product.name = name.strip()
+    if description is not None:
+        product.description = description.strip()
+    if price is not None:
+        product.price = int(price)
+    if image_url is not None:
+        product.image_url = image_url.strip()
+    if is_available is not None:
+        product.is_available = bool(is_available)
+    if size_details is not None:
+        product.size_details = size_details.strip()
+
+    if images is not None:
+        # Clear existing images
+        ProductImage.query.filter_by(product_id=product_id).delete()
+        for idx, url in enumerate(images):
+            new_img = ProductImage(product_id=product_id, image_url=url, display_order=idx)
+            db.session.add(new_img)
+
+    db.session.commit()
+    return jsonify(product.to_dict()), 200
+
+@app.route('/api/admin/products/<product_id>', methods=['DELETE'])
+@admin_required
+def admin_delete_product(email, product_id):
+    product = db.session.get(Product, product_id)
+    if not product:
+        return jsonify({'error': 'Product not found'}), 404
+
+    db.session.delete(product)
+    db.session.commit()
+    return jsonify({'message': 'Product deleted successfully'}), 200
+
 
 @app.route('/api/waitinglist/join', methods=['POST'])
 def join_waiting_list():
@@ -300,10 +447,18 @@ def verify_otp():
     # Generate session JWT token
     token = generate_jwt_token(email)
 
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        user = User(email=email, is_admin=False)
+        db.session.add(user)
+        db.session.commit()
+    is_admin = user.is_admin
+
     return jsonify({
         'message': 'OTP verified successfully',
         'token': token,
-        'email': email
+        'email': email,
+        'is_admin': is_admin
     }), 200
 
 # --- Orders API Routes ---
@@ -399,11 +554,23 @@ def remove_from_cart(email):
 def init_db():
     """Initialize the database."""
     db.create_all()
+    admin_emails = ['admin@absoluthings.com', 'demo@absoluthings.com', 'robin@absoluthings.com']
+    for email in admin_emails:
+        existing = User.query.filter_by(email=email).first()
+        if not existing:
+            db.session.add(User(email=email, is_admin=True))
+    db.session.commit()
     print("Database initialized successfully!")
 
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        admin_emails = ['admin@absoluthings.com', 'demo@absoluthings.com', 'robin@absoluthings.com']
+        for email in admin_emails:
+            existing = User.query.filter_by(email=email).first()
+            if not existing:
+                db.session.add(User(email=email, is_admin=True))
+        db.session.commit()
         # Seed dummy delivered orders if none exist
         if PastOrder.query.count() == 0:
             p1 = db.session.get(Product, 'thing-001')

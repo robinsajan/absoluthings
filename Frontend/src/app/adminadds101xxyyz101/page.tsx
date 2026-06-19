@@ -326,7 +326,7 @@ export default function AdminPage() {
     reader.readAsDataURL(file);
   };
 
-  // Canvas draw logic
+  // Canvas draw logic — pixel-level brightness/contrast for full mobile compatibility
   useEffect(() => {
     if (!cropperOpen || !cropSrc || !canvasRef.current) return;
 
@@ -337,53 +337,77 @@ export default function AdminPage() {
     const img = new Image();
     img.src = cropSrc;
     img.onload = () => {
-      // Clear canvas
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       ctx.save();
-      // Apply brightness/contrast filter BEFORE drawing
-      ctx.filter = `brightness(${cropBrightness}%) contrast(${cropContrast}%)`;
-      // Translate to center for rotation, zoom, offset
       ctx.translate(canvas.width / 2 + cropOffset.x, canvas.height / 2 + cropOffset.y);
       ctx.rotate((cropRotation * Math.PI) / 180);
-
-      // Scale to cover the canvas, with zoom applied
       const scale = Math.max(canvas.width / img.width, canvas.height / img.height) * cropZoom;
       ctx.scale(scale, scale);
-      ctx.drawImage(
-        img,
-        -img.width / 2,
-        -img.height / 2,
-        img.width,
-        img.height
-      );
+      ctx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
       ctx.restore();
 
-      // Draw crop border overlay (outside filter scope)
-      ctx.filter = "none";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      // Brightness & contrast via pixel manipulation — works on iOS/Android (ctx.filter not reliable)
+      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+      const d = imageData.data;
+      const bright = (cropBrightness - 100) * 2.55;
+      const contNorm = cropContrast / 100;
+      const contFactor = (259 * (contNorm * 255 + 255)) / (255 * (259 - contNorm * 255));
+      for (let i = 0; i < d.length; i += 4) {
+        let r = d[i] + bright;
+        let g = d[i + 1] + bright;
+        let b = d[i + 2] + bright;
+        r = contFactor * (r - 128) + 128;
+        g = contFactor * (g - 128) + 128;
+        b = contFactor * (b - 128) + 128;
+        d[i]     = Math.min(255, Math.max(0, r));
+        d[i + 1] = Math.min(255, Math.max(0, g));
+        d[i + 2] = Math.min(255, Math.max(0, b));
+      }
+      ctx.putImageData(imageData, 0, 0);
+
+      // Rule-of-thirds grid lines
+      ctx.strokeStyle = "rgba(255,255,255,0.3)";
+      ctx.lineWidth = 1;
+      const w3 = canvas.width / 3;
+      const h3 = canvas.height / 3;
+      for (let i = 1; i < 3; i++) {
+        ctx.beginPath(); ctx.moveTo(w3 * i, 0); ctx.lineTo(w3 * i, canvas.height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, h3 * i); ctx.lineTo(canvas.width, h3 * i); ctx.stroke();
+      }
+
+      // Crop border
+      ctx.strokeStyle = "rgba(255,255,255,0.85)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+      ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
     };
   }, [cropperOpen, cropSrc, cropZoom, cropRotation, cropBrightness, cropContrast, cropOffset]);
 
-  // Drag interaction
+  // Mouse drag (desktop)
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     dragStart.current = { x: e.clientX - cropOffset.x, y: e.clientY - cropOffset.y };
   };
-
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging) return;
-    setCropOffset({
-      x: e.clientX - dragStart.current.x,
-      y: e.clientY - dragStart.current.y,
-    });
+    setCropOffset({ x: e.clientX - dragStart.current.x, y: e.clientY - dragStart.current.y });
   };
+  const handleMouseUp = () => setIsDragging(false);
 
-  const handleMouseUp = () => {
-    setIsDragging(false);
+  // Touch drag (mobile)
+  const handleTouchStart = (e: React.TouchEvent) => {
+    e.preventDefault();
+    const t = e.touches[0];
+    setIsDragging(true);
+    dragStart.current = { x: t.clientX - cropOffset.x, y: t.clientY - cropOffset.y };
   };
+  const handleTouchMove = (e: React.TouchEvent) => {
+    e.preventDefault();
+    if (!isDragging) return;
+    const t = e.touches[0];
+    setCropOffset({ x: t.clientX - dragStart.current.x, y: t.clientY - dragStart.current.y });
+  };
+  const handleTouchEnd = () => setIsDragging(false);
 
   const handleCropSave = () => {
     const canvas = canvasRef.current;
@@ -542,12 +566,24 @@ export default function AdminPage() {
               Catalog Administration | {userEmail}
             </p>
           </div>
-          <button
-            onClick={handleLogout}
-            className="border border-primary/15 font-label-caps text-[10px] uppercase tracking-wider py-2.5 px-6 hover:bg-primary hover:text-white transition-colors cursor-pointer"
-          >
-            Logout Console
-          </button>
+          <div className="flex items-center gap-3">
+            <a
+              href="/"
+              className="border border-primary/15 font-label-caps text-[10px] uppercase tracking-wider py-2.5 px-5 hover:bg-surface-variant transition-colors cursor-pointer flex items-center gap-2"
+            >
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+                <polyline points="9 22 9 12 15 12 15 22"/>
+              </svg>
+              Home
+            </a>
+            <button
+              onClick={handleLogout}
+              className="border border-primary/15 font-label-caps text-[10px] uppercase tracking-wider py-2.5 px-6 hover:bg-primary hover:text-white transition-colors cursor-pointer"
+            >
+              Logout Console
+            </button>
+          </div>
         </header>
 
         {/* Catalog Control */}
@@ -911,6 +947,10 @@ export default function AdminPage() {
                 onMouseMove={handleMouseMove}
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
+                onTouchStart={handleTouchStart}
+                onTouchMove={handleTouchMove}
+                onTouchEnd={handleTouchEnd}
+                style={{ touchAction: "none" }}
                 className="max-w-full max-h-full"
               />
             </div>

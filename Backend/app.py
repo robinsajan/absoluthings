@@ -147,11 +147,11 @@ def upload_file(email):
     image_url = f"{host_url}static/product_images/{unique_filename}"
     return jsonify({'image_url': image_url}), 200
 
+
 @app.route('/api/admin/products', methods=['POST'])
 @admin_required
 def admin_add_product(email):
     data = request.get_json() or {}
-    product_id = data.get('id', '').strip()
     name = data.get('name', '').strip()
     description = data.get('description', '').strip()
     price = data.get('price') # In cents
@@ -160,12 +160,16 @@ def admin_add_product(email):
     is_available = data.get('is_available', False)
     size_details = data.get('size_details', '').strip()
 
-    if not product_id or not name or price is None:
-        return jsonify({'error': 'ID, name, and price are required'}), 400
+    if not name or price is None:
+        return jsonify({'error': 'Name and price are required'}), 400
 
-    existing = db.session.get(Product, product_id)
-    if existing:
-        return jsonify({'error': f'Product with ID {product_id} already exists'}), 400
+    # Auto-generate ID: thing-NNN based on total product count
+    count = Product.query.count()
+    product_id = f"thing-{count + 1:03d}"
+    # Ensure uniqueness in case of gaps
+    while db.session.get(Product, product_id):
+        count += 1
+        product_id = f"thing-{count + 1:03d}"
 
     new_prod = Product(
         id=product_id,

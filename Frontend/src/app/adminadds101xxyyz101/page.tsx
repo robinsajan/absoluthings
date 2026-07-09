@@ -51,8 +51,7 @@ export default function AdminPage() {
   const [cropSrc, setCropSrc] = useState<string>("");
   const [cropZoom, setCropZoom] = useState<number>(1);
   const [cropRotation, setCropRotation] = useState<number>(0);
-  const [cropBrightness, setCropBrightness] = useState<number>(100);
-  const [cropContrast, setCropContrast] = useState<number>(100);
+
   const [cropTarget, setCropTarget] = useState<"primary" | "gallery" | null>(null);
   const [galleryIndexToReplace, setGalleryIndexToReplace] = useState<number | null>(null);
   
@@ -318,15 +317,14 @@ export default function AdminPage() {
       setGalleryIndexToReplace(index !== undefined ? index : null);
       setCropZoom(1);
       setCropRotation(0);
-      setCropBrightness(100);
-      setCropContrast(100);
+
       setCropOffset({ x: 0, y: 0 });
       setCropperOpen(true);
     };
     reader.readAsDataURL(file);
   };
 
-  // Canvas draw logic — pixel-level brightness/contrast for full mobile compatibility
+  // Canvas draw logic — crop, zoom, pan, and rotation
   useEffect(() => {
     if (!cropperOpen || !cropSrc || !canvasRef.current) return;
 
@@ -347,25 +345,6 @@ export default function AdminPage() {
       ctx.drawImage(img, -img.width / 2, -img.height / 2, img.width, img.height);
       ctx.restore();
 
-      // Brightness & contrast via pixel manipulation — works on iOS/Android (ctx.filter not reliable)
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-      const d = imageData.data;
-      const bright = (cropBrightness - 100) * 2.55;
-      const contNorm = cropContrast / 100;
-      const contFactor = (259 * (contNorm * 255 + 255)) / (255 * (259 - contNorm * 255));
-      for (let i = 0; i < d.length; i += 4) {
-        let r = d[i] + bright;
-        let g = d[i + 1] + bright;
-        let b = d[i + 2] + bright;
-        r = contFactor * (r - 128) + 128;
-        g = contFactor * (g - 128) + 128;
-        b = contFactor * (b - 128) + 128;
-        d[i]     = Math.min(255, Math.max(0, r));
-        d[i + 1] = Math.min(255, Math.max(0, g));
-        d[i + 2] = Math.min(255, Math.max(0, b));
-      }
-      ctx.putImageData(imageData, 0, 0);
-
       // Rule-of-thirds grid lines
       ctx.strokeStyle = "rgba(255,255,255,0.3)";
       ctx.lineWidth = 1;
@@ -381,7 +360,7 @@ export default function AdminPage() {
       ctx.lineWidth = 2;
       ctx.strokeRect(2, 2, canvas.width - 4, canvas.height - 4);
     };
-  }, [cropperOpen, cropSrc, cropZoom, cropRotation, cropBrightness, cropContrast, cropOffset]);
+  }, [cropperOpen, cropSrc, cropZoom, cropRotation, cropOffset]);
 
   // Mouse drag (desktop)
   const handleMouseDown = (e: React.MouseEvent) => {
@@ -703,21 +682,6 @@ export default function AdminPage() {
                 <div className="flex flex-col gap-5">
                   <div className="flex flex-col gap-1.5">
                     <label className="font-label-caps text-[10px] uppercase tracking-widest text-on-surface-variant">
-                      Product ID (Unique Key)
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      disabled={isEditing}
-                      placeholder="thing-001"
-                      value={prodId}
-                      onChange={(e) => setProdId(e.target.value)}
-                      className="border border-primary/15 bg-surface/30 py-3 px-4 text-sm focus:outline-none focus:border-primary/40 font-body transition-colors disabled:opacity-50"
-                    />
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="font-label-caps text-[10px] uppercase tracking-widest text-on-surface-variant">
                       Product Name
                     </label>
                     <input
@@ -991,40 +955,7 @@ export default function AdminPage() {
                 />
               </div>
 
-              {/* Adjustments: Brightness / Contrast */}
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between">
-                    <span className="font-label-caps text-[9px] uppercase tracking-wider text-on-surface-variant">Brightness</span>
-                    <span>{cropBrightness}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="150"
-                    step="1"
-                    value={cropBrightness}
-                    onChange={(e) => setCropBrightness(parseInt(e.target.value))}
-                    className="w-full accent-primary h-1 bg-surface-variant rounded-lg cursor-pointer"
-                  />
-                </div>
 
-                <div className="flex flex-col gap-1.5">
-                  <div className="flex justify-between">
-                    <span className="font-label-caps text-[9px] uppercase tracking-wider text-on-surface-variant">Contrast</span>
-                    <span>{cropContrast}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="50"
-                    max="150"
-                    step="1"
-                    value={cropContrast}
-                    onChange={(e) => setCropContrast(parseInt(e.target.value))}
-                    className="w-full accent-primary h-1 bg-surface-variant rounded-lg cursor-pointer"
-                  />
-                </div>
-              </div>
             </div>
 
             {/* Buttons */}
